@@ -21,7 +21,7 @@ android {
     defaultConfig {
         applicationId = "com.tunnellight.converter"
         minSdk = 29
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
@@ -41,9 +41,11 @@ android {
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt")
+            )
             signingConfig = signingConfigs.getByName("release")
         }
     }
