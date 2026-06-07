@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App palette (dark) -->
+    <color name="brand">#60A5FA</color>
+    <color name="brand_dark">#3B82F6</color>
+    <color name="screen_bg">#0F172A</color>
+    <color name="card_bg">#1E293B</color>
+    <color name="field_bg">#0F172A</color>
+    <color name="field_stroke">#334155</color>
+    <color name="text_primary">#F1F5F9</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="text_hint">#64748B</color>
+    <color name="ripple">#3360A5FA</color>
+    <color name="warning_bg">#3A2E12</color>
+    <color name="warning_stroke">#B45309</color>
+    <color name="warning_text">#FCD34D</color>
+</resources>
