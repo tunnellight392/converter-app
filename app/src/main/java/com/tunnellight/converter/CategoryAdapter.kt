@@ -1,11 +1,11 @@
 package com.tunnellight.converter
 
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.graphics.toColorInt
 import androidx.recyclerview.widget.RecyclerView
 import com.tunnellight.converter.model.Category
 import java.util.Collections
@@ -37,13 +37,13 @@ class CategoryAdapter(
         holder.unitCount.text = holder.itemView.context
             .getString(R.string.units_count, category.units.size)
         holder.colorDot.backgroundTintList =
-            ColorStateList.valueOf(Color.parseColor(category.colorHex))
+            ColorStateList.valueOf(category.colorHex.toColorInt())
         holder.itemView.setOnClickListener { onClick(category) }
     }
 
     override fun getItemCount(): Int = categories.size
 
-    /** Swap two tiles during a drag. Called by the [ItemTouchHelper] callback for each step. */
+    /** Swap two tiles during a drag. Called by the ItemTouchHelper callback for each step. */
     fun moveItem(from: Int, to: Int) {
         Collections.swap(categories, from, to)
         notifyItemMoved(from, to)
