@@ -6,28 +6,27 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Diagonal blue gradient fill -->
+    <!-- Soft two-stop diagonal blue: lighter top-left to a deeper Material blue -->
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
                 android:startX="0" android:startY="0"
                 android:endX="108" android:endY="108">
-                <item android:color="#FF3B82F6" android:offset="0.0" />
-                <item android:color="#FF2563EB" android:offset="0.55" />
-                <item android:color="#FF1E3A8A" android:offset="1.0" />
+                <item android:color="#FF5A95F6" android:offset="0.0" />
+                <item android:color="#FF2563EB" android:offset="1.0" />
             </gradient>
         </aapt:attr>
     </path>
 
-    <!-- Soft highlight glow in the upper-left -->
+    <!-- Gentle highlight in the upper-left for a subtle sense of depth -->
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="radial"
-                android:centerX="38" android:centerY="34"
-                android:gradientRadius="74">
-                <item android:color="#33FFFFFF" android:offset="0.0" />
+                android:centerX="40" android:centerY="36"
+                android:gradientRadius="72">
+                <item android:color="#26FFFFFF" android:offset="0.0" />
                 <item android:color="#00FFFFFF" android:offset="1.0" />
             </gradient>
         </aapt:attr>

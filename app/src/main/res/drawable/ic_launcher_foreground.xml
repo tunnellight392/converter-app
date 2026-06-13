@@ -5,93 +5,34 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Outer group adds padding so the art stays inside any launcher mask -->
+    <!--
+      Clean "convert" mark for Material You: two opposing swap arrows above a short
+      ruler-tick row. Everything is solid white so it doubles as a crisp monochrome
+      (themed) icon. Wrapped in a 0.9 group so the art stays inside any launcher mask.
+    -->
     <group android:pivotX="54" android:pivotY="54" android:scaleX="0.9" android:scaleY="0.9">
 
-        <!-- ======================================================== -->
-        <!-- GEARS (meshing pair, top). A gear = 8 trapezoid teeth     -->
-        <!-- (rotated copies) + a donut ring. The donut uses evenOdd   -->
-        <!-- so its centre hole is transparent.                        -->
-        <!-- ======================================================== -->
+        <!-- Top arrow: points right -->
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="7"
+            android:strokeLineCap="round" android:fillColor="#00000000"
+            android:pathData="M32,40 L60,40" />
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M58,32.5 L58,47.5 L74,40 Z" />
 
-        <!-- Large gear, upper-left -->
-        <group android:translateX="45" android:translateY="28" android:scaleX="0.72" android:scaleY="0.72">
-            <group android:rotation="0"><path android:fillColor="#FFFFFFFF" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="45"><path android:fillColor="#FFFFFFFF" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="90"><path android:fillColor="#FFFFFFFF" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="135"><path android:fillColor="#FFFFFFFF" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="180"><path android:fillColor="#FFFFFFFF" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="225"><path android:fillColor="#FFFFFFFF" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="270"><path android:fillColor="#FFFFFFFF" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="315"><path android:fillColor="#FFFFFFFF" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
-                android:pathData="M0,-15.5 a15.5,15.5 0 1,0 0,31 a15.5,15.5 0 1,0 0,-31 Z M0,-7 a7,7 0 1,0 0,14 a7,7 0 1,0 0,-14 Z" />
-        </group>
+        <!-- Bottom arrow: points left -->
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="7"
+            android:strokeLineCap="round" android:fillColor="#00000000"
+            android:pathData="M48,57 L76,57" />
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M50,49.5 L50,64.5 L34,57 Z" />
 
-        <!-- Small gear, upper-right -->
-        <group android:translateX="68" android:translateY="20" android:scaleX="0.5" android:scaleY="0.5">
-            <group android:rotation="0"><path android:fillColor="#FFE2E8F0" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="45"><path android:fillColor="#FFE2E8F0" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="90"><path android:fillColor="#FFE2E8F0" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="135"><path android:fillColor="#FFE2E8F0" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="180"><path android:fillColor="#FFE2E8F0" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="225"><path android:fillColor="#FFE2E8F0" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="270"><path android:fillColor="#FFE2E8F0" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <group android:rotation="315"><path android:fillColor="#FFE2E8F0" android:pathData="M-4.2,-14.5 L-2.6,-22 L2.6,-22 L4.2,-14.5 Z" /></group>
-            <path android:fillColor="#FFE2E8F0" android:fillType="evenOdd"
-                android:pathData="M0,-15.5 a15.5,15.5 0 1,0 0,31 a15.5,15.5 0 1,0 0,-31 Z M0,-6.5 a6.5,6.5 0 1,0 0,13 a6.5,6.5 0 1,0 0,-13 Z" />
-        </group>
-
-        <!-- ======================================================== -->
-        <!-- WRENCH (one diagonal, open-end head to the upper-right).   -->
-        <!-- Head = outer block minus a keyhole (evenOdd).             -->
-        <!-- ======================================================== -->
-        <group android:translateX="54" android:translateY="62" android:rotation="36">
-            <path android:fillColor="#FFCBD5E1" android:fillType="evenOdd"
-                android:pathData="M-8.5,-8 L8.5,-8 L8.5,-23 Q8.5,-25 6.5,-25 L-6.5,-25 Q-8.5,-25 -8.5,-23 Z M-3,-27 L-3,-20 A5,5 0 1,1 3,-20 L3,-27 Z" />
-            <path android:fillColor="#FFCBD5E1"
-                android:pathData="M-3.2,-9 L3.2,-9 L3.2,19 Q3.2,22 0,22 Q-3.2,22 -3.2,19 Z" />
-        </group>
-
-        <!-- ======================================================== -->
-        <!-- SCREWDRIVER (other diagonal, flat tip to the upper-left). -->
-        <!-- ======================================================== -->
-        <group android:translateX="54" android:translateY="62" android:rotation="-36">
-            <path android:fillColor="#FFE2E8F0" android:pathData="M-2.4,-22 L2.4,-22 L1.6,-26 L-1.6,-26 Z" />
-            <path android:fillColor="#FFCBD5E1" android:pathData="M-1.7,4 L1.7,4 L1.7,-22 L-1.7,-22 Z" />
-            <path android:fillColor="#FFB45309" android:pathData="M-2.5,3 L2.5,3 L2.5,8 L-2.5,8 Z" />
-            <path android:fillColor="#FFF59E0B"
-                android:pathData="M-5,8 Q-5,7 -4,7 L4,7 Q5,7 5,8 L5,20 Q5,24 0,24 Q-5,24 -5,20 Z" />
-        </group>
-
-        <!-- ======================================================== -->
-        <!-- BEAKERS (front, bottom): outlined translucent glass with  -->
-        <!-- coloured liquid and a pour spout.                         -->
-        <!-- ======================================================== -->
-
-        <!-- Left beaker (teal) -->
-        <group android:translateX="44" android:translateY="66">
-            <path android:fillColor="#4514B8A6"
-                android:pathData="M-7,8 L7,8 L7,15 Q7,18 4,18 L-4,18 Q-7,18 -7,15 Z" />
-            <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.5" android:fillColor="#24FFFFFF"
-                android:pathData="M-7,0 L7,0 L7,15 Q7,18 4,18 L-4,18 Q-7,18 -7,15 Z" />
-            <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.5" android:fillColor="#00000000"
-                android:pathData="M7,0 L10.5,-2.5 L7,2.5" />
-            <path android:strokeColor="#8CFFFFFF" android:strokeWidth="1.1" android:fillColor="#00000000"
-                android:pathData="M3.5,4 L7,4" />
-        </group>
-
-        <!-- Right beaker (sky), slightly larger -->
-        <group android:translateX="64" android:translateY="67" android:scaleX="1.18" android:scaleY="1.18">
-            <path android:fillColor="#4738BDF8"
-                android:pathData="M-7,6 L7,6 L7,15 Q7,18 4,18 L-4,18 Q-7,18 -7,15 Z" />
-            <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.3" android:fillColor="#24FFFFFF"
-                android:pathData="M-7,0 L7,0 L7,15 Q7,18 4,18 L-4,18 Q-7,18 -7,15 Z" />
-            <path android:strokeColor="#FFFFFFFF" android:strokeWidth="1.3" android:fillColor="#00000000"
-                android:pathData="M7,0 L10.5,-2.5 L7,2.5" />
-            <path android:strokeColor="#8CFFFFFF" android:strokeWidth="1.0" android:fillColor="#00000000"
-                android:pathData="M3.5,4 L7,4" />
-        </group>
+        <!-- Ruler tick row: baseline plus alternating tall/short ticks -->
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3"
+            android:strokeLineCap="round" android:fillColor="#00000000"
+            android:pathData="M33,73 L75,73" />
+        <path android:strokeColor="#FFFFFFFF" android:strokeWidth="3"
+            android:strokeLineCap="round" android:fillColor="#00000000"
+            android:pathData="M34,73 L34,65 M54,73 L54,65 M74,73 L74,65 M44,73 L44,68 M64,73 L64,68" />
 
     </group>
 </vector>
