@@ -8,11 +8,13 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.tunnellight.converter.model.Category
+import java.util.Collections
 
-/** Renders each [Category] as a clickable tile in the home grid. */
+/** Renders each [Category] as a clickable tile in the home grid, draggable to reorder. */
 class CategoryAdapter(
-    private val categories: List<Category>,
-    private val onClick: (Category) -> Unit
+    private val categories: MutableList<Category>,
+    private val onClick: (Category) -> Unit,
+    private val onOrderChanged: (List<Category>) -> Unit
 ) : RecyclerView.Adapter<CategoryAdapter.CategoryViewHolder>() {
 
     class CategoryViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -40,4 +42,15 @@ class CategoryAdapter(
     }
 
     override fun getItemCount(): Int = categories.size
+
+    /** Swap two tiles during a drag. Called by the [ItemTouchHelper] callback for each step. */
+    fun moveItem(from: Int, to: Int) {
+        Collections.swap(categories, from, to)
+        notifyItemMoved(from, to)
+    }
+
+    /** Called once when a drag gesture finishes, so the new order can be persisted. */
+    fun commitOrder() {
+        onOrderChanged(categories.toList())
+    }
 }
