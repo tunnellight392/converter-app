@@ -1,10 +1,10 @@
 package com.tunnellight.converter
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
@@ -99,12 +99,12 @@ class MainActivity : AppCompatActivity() {
 
     /** Persist the current tile order so it is restored on next launch. */
     private fun saveOrder(categories: List<Category>) {
-        orderPrefs().edit()
-            .putString(KEY_ORDER, categories.joinToString("\n") { it.id })
-            .apply()
+        orderPrefs().edit {
+            putString(KEY_ORDER, categories.joinToString("\n") { it.id })
+        }
     }
 
-    private fun orderPrefs() = getSharedPreferences(PREFS_CATEGORY_ORDER, Context.MODE_PRIVATE)
+    private fun orderPrefs() = getSharedPreferences(PREFS_CATEGORY_ORDER, MODE_PRIVATE)
 
     companion object {
         private const val PREFS_CATEGORY_ORDER = "category_order"
