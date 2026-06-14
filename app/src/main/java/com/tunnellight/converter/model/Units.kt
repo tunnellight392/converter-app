@@ -140,6 +140,29 @@ object UnitsRepository {
             )
         ),
         Category(
+            id = "ev", name = "EV Efficiency", emoji = "🔌", colorHex = "#7C3AED",
+            note = "Base is energy used per distance (Wh/km). Consumption units (Wh/km, " +
+                "kWh/100 km) rise as efficiency drops; range units (mi/kWh, km/kWh, MPGe) " +
+                "are inverse, so a higher number means a more efficient vehicle. MPGe uses " +
+                "the EPA equivalence of 33.7 kWh per US gallon of gasoline.",
+            units = listOf(
+                ConvUnit("Watt-hour/kilometer", "Wh/km",
+                    toBase = { it }, fromBase = { it }),
+                ConvUnit("Watt-hour/mile", "Wh/mi",
+                    toBase = { it / 1.609344 }, fromBase = { it * 1.609344 }),
+                ConvUnit("kWh/100 km", "kWh/100km",
+                    toBase = { it * 10.0 }, fromBase = { it / 10.0 }),
+                ConvUnit("kWh/100 mi", "kWh/100mi",
+                    toBase = { it * (10.0 / 1.609344) }, fromBase = { it / (10.0 / 1.609344) }),
+                ConvUnit("Kilometer/kWh", "km/kWh",
+                    toBase = { 1000.0 / it }, fromBase = { 1000.0 / it }),
+                ConvUnit("Mile/kWh", "mi/kWh",
+                    toBase = { 1000.0 / (it * 1.609344) }, fromBase = { 1000.0 / (it * 1.609344) }),
+                ConvUnit("MPGe", "MPGe",
+                    toBase = { 33700.0 / (it * 1.609344) }, fromBase = { 33700.0 / (it * 1.609344) })
+            )
+        ),
+        Category(
             id = "time", name = "Time", emoji = "⏱️", colorHex = "#6366F1",
             units = listOf(
                 linear("Second", "s", 1.0),
