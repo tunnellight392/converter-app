@@ -15,10 +15,18 @@ data class ConvUnit(
     val name: String,
     val symbol: String,
     val toBase: (Double) -> Double,
-    val fromBase: (Double) -> Double
+    val fromBase: (Double) -> Double,
+    /**
+     * When set, results displayed in this unit are rounded to the nearest multiple of this
+     * increment (e.g. 0.5 to snap shoe sizes to half sizes). Null means show full precision.
+     */
+    val snap: Double? = null
 ) {
-    /** Convert [value], expressed in this unit, into [target]. */
-    fun convert(value: Double, target: ConvUnit): Double = target.fromBase(toBase(value))
+    /** Convert [value], expressed in this unit, into [target], snapped to [target]'s increment if any. */
+    fun convert(value: Double, target: ConvUnit): Double {
+        val result = target.fromBase(toBase(value))
+        return target.snap?.let { Math.round(result / it) * it } ?: result
+    }
 }
 
 /** A group of related units shown as a tile on the home screen. */
@@ -30,6 +38,33 @@ data class Category(
     val units: List<ConvUnit>,
     /** Optional caveat shown at the top of the converter screen. */
     val note: String? = null
+)
+
+/**
+ * Shoe-size constants. Both shoe categories use foot length in millimeters as their base
+ * (this is effectively the Mondopoint standard). A men's US 9 corresponds to roughly a
+ * 270 mm foot, and each full size step is one barleycorn (1/3 inch). US/UK are affine in
+ * foot length; EU (Paris point) uses EU ≈ 0.15·mm + 2. UK and EU are unisex by foot length,
+ * so they share the same formula in both categories — only the US number differs.
+ */
+private const val SHOE_ANCHOR_MM = 270.0
+private const val BARLEYCORN_MM = 25.4 / 3.0
+
+/** Build a shoe-size unit that is affine in foot length: size 0 maps to [anchorSize] at the anchor foot. */
+private fun shoeBarleycorn(name: String, symbol: String, anchorSize: Double) = ConvUnit(
+    name = name,
+    symbol = symbol,
+    toBase = { SHOE_ANCHOR_MM + (it - anchorSize) * BARLEYCORN_MM },
+    fromBase = { anchorSize + (it - SHOE_ANCHOR_MM) / BARLEYCORN_MM },
+    snap = 0.5
+)
+
+/** EU (Paris-point) shoe size, unisex: EU ≈ 0.15·(foot mm) + 2. */
+private fun shoeEu() = ConvUnit(
+    name = "EU", symbol = "EU",
+    toBase = { (it - 2.0) / 0.15 },
+    fromBase = { 0.15 * it + 2.0 },
+    snap = 0.5
 )
 
 /** Build a unit whose conversion to the base is a simple multiply by [factor]. */
@@ -249,6 +284,33 @@ object UnitsRepository {
                 linear("Hourly", "/hr", 2080.0),
                 linear("Monthly", "/mo", 12.0),
                 linear("Yearly", "/yr", 1.0)
+            )
+        ),
+        Category(
+            id = "shoe_men", name = "Men's Shoe Size", emoji = "👞", colorHex = "#92400E",
+            note = "Approximate adult men's sizes anchored to common charts (US 9 ≈ 270 mm " +
+                "foot). Round to the nearest half size; fit varies by brand.",
+            // Base unit is foot length in mm. Men's UK runs 0.5 below US; EU is unisex.
+            units = listOf(
+                shoeBarleycorn("US", "US", anchorSize = 9.0),
+                shoeBarleycorn("UK", "UK", anchorSize = 8.5),
+                shoeEu(),
+                linear("Foot length (cm)", "cm", 10.0),
+                linear("Foot length (mm)", "mm", 1.0)
+            )
+        ),
+        Category(
+            id = "shoe_women", name = "Women's Shoe Size", emoji = "👠", colorHex = "#BE185D",
+            note = "Approximate adult women's sizes anchored to common charts (US 10.5 ≈ " +
+                "270 mm foot; US women run ~1.5 above US men). Round to the nearest half " +
+                "size; fit varies by brand.",
+            // Base unit is foot length in mm. Women's US runs 1.5 above men's; UK and EU are unisex.
+            units = listOf(
+                shoeBarleycorn("US", "US", anchorSize = 10.5),
+                shoeBarleycorn("UK", "UK", anchorSize = 8.5),
+                shoeEu(),
+                linear("Foot length (cm)", "cm", 10.0),
+                linear("Foot length (mm)", "mm", 1.0)
             )
         )
     )
