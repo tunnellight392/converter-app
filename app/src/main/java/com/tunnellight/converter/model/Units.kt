@@ -2,6 +2,7 @@ package com.tunnellight.converter.model
 
 import java.math.BigDecimal
 import java.math.MathContext
+import java.util.Locale
 import kotlin.math.abs
 
 /**
@@ -121,6 +122,24 @@ object UnitsRepository {
             )
         ),
         Category(
+            id = "fuel", name = "Fuel Economy", emoji = "⛽", colorHex = "#84CC16",
+            note = "Liters/100 km is an inverse measure: a lower number means a more efficient vehicle.",
+            // Base unit is kilometers per liter (km/L). MPG (more is better) maps with a
+            // simple factor, but L/100 km is inversely related, so it uses km/L = 100 / value.
+            units = listOf(
+                ConvUnit("Mile/gallon (US)", "mpg",
+                    toBase = { it * (1.609344 / 3.785411784) },
+                    fromBase = { it / (1.609344 / 3.785411784) }),
+                ConvUnit("Mile/gallon (UK)", "mpg",
+                    toBase = { it * (1.609344 / 4.54609) },
+                    fromBase = { it / (1.609344 / 4.54609) }),
+                ConvUnit("Kilometer/liter", "km/L",
+                    toBase = { it }, fromBase = { it }),
+                ConvUnit("Liter/100 km", "L/100km",
+                    toBase = { 100.0 / it }, fromBase = { 100.0 / it })
+            )
+        ),
+        Category(
             id = "time", name = "Time", emoji = "⏱️", colorHex = "#6366F1",
             units = listOf(
                 linear("Second", "s", 1.0),
@@ -227,7 +246,7 @@ object UnitsRepository {
                 .stripTrailingZeros()
                 .toPlainString()
         } else {
-            String.format("%.6E", value)
+            String.format(Locale.US, "%.6E", value)
         }
     }
 }
