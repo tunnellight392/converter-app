@@ -2,6 +2,8 @@ package com.tunnellight.converter
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.edit
@@ -46,6 +48,19 @@ class MainActivity : AppCompatActivity() {
         recycler.adapter = adapter
 
         attachDragToReorder(recycler, adapter)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == R.id.action_feedback) {
+            startActivity(Intent(this, FeedbackActivity::class.java))
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     /** Wire up long-press-and-drag reordering of the category tiles. */

@@ -3,4 +3,13 @@
     <string name="value_hint">0</string>
     <string name="note_format">⚠️  %1$s</string>
     <string name="units_count">%d units</string>
+    <string name="menu_feedback">Feedback</string>
+    <string name="feedback_title">Feedback</string>
+    <string name="feedback_emoji">💬</string>
+    <string name="feedback_heading">We\'d love to hear from you</string>
+    <string name="feedback_message">Have a suggestion, found a bug, or want a new conversion category added? Send your feedback and any new conversion option requests to:</string>
+    <string name="feedback_email">tunnellightt392@gmail.com</string>
+    <string name="feedback_send">Send email</string>
+    <string name="feedback_subject">Unit Converter feedback</string>
+    <string name="feedback_no_email">No email app found. Please email %1$s</string>
 </resources>
