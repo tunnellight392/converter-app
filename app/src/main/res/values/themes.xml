@@ -1,4 +1,4 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources>
     <!-- Base application theme. -->
     <style name="Theme.Converterapp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Primary brand color. -->
@@ -20,5 +20,8 @@
         <item name="android:background">@color/brand</item>
         <item name="titleTextColor">@color/white</item>
         <item name="android:theme">@style/ThemeOverlay.MaterialComponents.Dark.ActionBar</item>
+        <!-- Keep the overflow popup light (dark text on white) so menu items stay readable;
+             the Dark.ActionBar overlay above would otherwise make popup text white-on-white. -->
+        <item name="popupTheme">@style/ThemeOverlay.MaterialComponents.Light</item>
     </style>
 </resources>
