@@ -67,12 +67,50 @@ private fun shoeEu() = ConvUnit(
     snap = 0.5
 )
 
-/** Build a unit whose conversion to the base is a simple multiply by [factor]. */
-private fun linear(name: String, symbol: String, factor: Double) = ConvUnit(
+/**
+ * Women's tops are sized by bust circumference, but the ASOS chart is non-linear: increments
+ * grow from ~2 cm per size at the small end to ~3.5 cm in the Curve range. So rather than a
+ * single slope we interpolate over the published ASOS table (keyed by UK size). US = UK − 4
+ * and EU = UK + 28. Men's dress-shirt sizes are just collar (neck) circumference in different
+ * units, so they need no table — the base is neck cm, and EU shirt size = neck cm.
+ */
+private val ASOS_UK_SIZES = listOf(4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0)
+private val ASOS_BUST_CM = listOf(76.0, 80.0, 85.0, 89.0, 93.0, 97.0, 102.0, 108.0, 116.0, 123.0, 130.0, 137.0)
+
+/**
+ * Piecewise-linear lookup of [x] against monotonically increasing [xs], returning the matching
+ * [ys] value. Inputs outside the table are linearly extrapolated using the end segments.
+ */
+private fun piecewise(x: Double, xs: List<Double>, ys: List<Double>): Double {
+    val last = xs.size - 1
+    val i = when {
+        x <= xs[0] -> 0
+        x >= xs[last] -> last - 1
+        else -> xs.indexOfLast { it <= x }.coerceAtMost(last - 1)
+    }
+    val t = (x - xs[i]) / (xs[i + 1] - xs[i])
+    return ys[i] + t * (ys[i + 1] - ys[i])
+}
+
+/**
+ * Build a women's top size unit. [offsetFromUk] is how the system's number differs from the UK
+ * size (US = −4, EU = +28); conversions go size → UK → bust (cm) and back via the ASOS table.
+ */
+private fun womensTop(name: String, symbol: String, offsetFromUk: Double) = ConvUnit(
+    name = name,
+    symbol = symbol,
+    toBase = { piecewise(it - offsetFromUk, ASOS_UK_SIZES, ASOS_BUST_CM) },
+    fromBase = { piecewise(it, ASOS_BUST_CM, ASOS_UK_SIZES) + offsetFromUk },
+    snap = 2.0
+)
+
+/** Build a unit whose conversion to the base is a simple multiply by [factor], optionally [snap]ped. */
+private fun linear(name: String, symbol: String, factor: Double, snap: Double? = null) = ConvUnit(
     name = name,
     symbol = symbol,
     toBase = { it * factor },
-    fromBase = { it / factor }
+    fromBase = { it / factor },
+    snap = snap
 )
 
 object UnitsRepository {
@@ -311,6 +349,31 @@ object UnitsRepository {
                 shoeEu(),
                 linear("Foot length (cm)", "cm", 10.0),
                 linear("Foot length (mm)", "mm", 1.0)
+            )
+        ),
+        Category(
+            id = "shirt_men", name = "Men's Shirt Size", emoji = "👔", colorHex = "#1E3A8A",
+            note = "Dress-shirt sizes by collar (neck) circumference. EU size equals the " +
+                "neck in cm. Rough letter sizes: S ≈ 14–14½ in, M ≈ 15–15½ in, L ≈ 16–16½ in, " +
+                "XL ≈ 17–17½ in. Fit varies by brand.",
+            // Base unit is neck circumference in cm. EU shirt size = neck cm.
+            units = listOf(
+                linear("Collar US/UK", "in", 2.54, snap = 0.5),
+                linear("Collar EU", "cm", 1.0, snap = 0.5)
+            )
+        ),
+        Category(
+            id = "shirt_women", name = "Women's Shirt Size", emoji = "👚", colorHex = "#DB2777",
+            note = "Tops/blouse sizes by bust circumference, interpolated from the ASOS chart " +
+                "(UK = US + 4, EU = US + 32). E.g. UK 12 / US 8 ≈ 93 cm, UK 20 ≈ 116 cm bust. " +
+                "Fit varies by brand.",
+            // Base unit is bust circumference in cm; US/UK/EU come from the ASOS table.
+            units = listOf(
+                womensTop("US", "US", offsetFromUk = -4.0),
+                womensTop("UK", "UK", offsetFromUk = 0.0),
+                womensTop("EU", "EU", offsetFromUk = 28.0),
+                linear("Bust", "in", 2.54),
+                linear("Bust", "cm", 1.0)
             )
         )
     )
