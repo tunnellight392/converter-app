@@ -60,15 +60,20 @@
                 android:lineSpacingMultiplier="1.2"
                 android:layout_marginBottom="16dp" />
 
-            <TextView
-                android:id="@+id/feedbackEmail"
+            <EditText
+                android:id="@+id/feedbackInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/feedback_email"
-                android:textColor="@color/brand"
+                android:background="@drawable/value_field_bg"
+                android:gravity="top|start"
+                android:hint="@string/feedback_hint"
+                android:inputType="textMultiLine|textCapSentences"
+                android:minLines="5"
+                android:padding="14dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:autoLink="email"
+                android:autofillHints=""
                 android:layout_marginBottom="20dp" />
 
             <com.google.android.material.button.MaterialButton
