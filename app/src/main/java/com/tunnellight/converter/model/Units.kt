@@ -37,7 +37,26 @@ data class Category(
     val colorHex: String,
     val units: List<ConvUnit>,
     /** Optional caveat shown at the top of the converter screen. */
-    val note: String? = null
+    val note: String? = null,
+    /** Set when the category's conversions depend on a number the user can adjust. */
+    val param: CategoryParam? = null
+)
+
+/**
+ * A number the user can change that the category's conversions depend on — currently only the
+ * Pay category's hours worked per week. The converter screen shows it as an extra field above
+ * the unit rows and swaps in [variantFor]'s category (new units, new note) as the value changes.
+ */
+data class CategoryParam(
+    /** Label for the input, e.g. "Hours worked per week". */
+    val label: String,
+    /** Smaller caption under the label, in the same spot as a unit's symbol. */
+    val caption: String,
+    val defaultValue: Double,
+    /** Values outside this range are ignored, so the last usable setting stays in effect. */
+    val range: ClosedFloatingPointRange<Double>,
+    /** Rebuilds the whole category for a new value of this parameter. */
+    val variantFor: (Double) -> Category
 )
 
 /**
@@ -112,6 +131,54 @@ private fun linear(name: String, symbol: String, factor: Double, snap: Double? =
     fromBase = { it / factor },
     snap = snap
 )
+
+/**
+ * Implementation of [UnitsRepository.format]. It lives at file scope so the category builders
+ * below can use it while the repository object itself is still being initialised.
+ */
+private fun formatNumber(value: Double): String {
+    if (!value.isFinite()) return ""
+    if (value == 0.0) return "0"
+    val magnitude = abs(value)
+    return if (magnitude >= 1e-4 && magnitude < 1e12) {
+        BigDecimal.valueOf(value)
+            .round(MathContext(10))
+            .stripTrailingZeros()
+            .toPlainString()
+    } else {
+        String.format(Locale.US, "%.6E", value)
+    }
+}
+
+/** Work week the Pay category assumes until the user enters their own hours. */
+private const val DEFAULT_HOURS_PER_WEEK = 40.0
+private const val WEEKS_PER_YEAR = 52.0
+
+/**
+ * Build the Pay category for a given work week. Base unit is yearly pay: hourly ×
+ * (hours per week × 52) = yearly, monthly × 12 = yearly. Only the hourly rate depends on the
+ * work week, but the note quotes it too, so the whole category is rebuilt per value.
+ */
+private fun payCategory(hoursPerWeek: Double): Category {
+    val hoursPerYear = hoursPerWeek * WEEKS_PER_YEAR
+    return Category(
+        id = "pay", name = "Pay", emoji = "💵", colorHex = "#16A34A",
+        note = "Conversions assume a ${formatNumber(hoursPerWeek)}-hour work week " +
+            "(${formatNumber(hoursPerYear)} hours per year).",
+        units = listOf(
+            linear("Hourly", "/hr", hoursPerYear),
+            linear("Monthly", "/mo", 12.0),
+            linear("Yearly", "/yr", 1.0)
+        ),
+        param = CategoryParam(
+            label = "Hours worked per week",
+            caption = "h/week",
+            defaultValue = DEFAULT_HOURS_PER_WEEK,
+            range = 1.0..168.0,
+            variantFor = ::payCategory
+        )
+    )
+}
 
 object UnitsRepository {
 
@@ -314,16 +381,7 @@ object UnitsRepository {
                 linear("Gigahertz", "GHz", 1e9)
             )
         ),
-        Category(
-            id = "pay", name = "Pay", emoji = "💵", colorHex = "#16A34A",
-            note = "Conversions assume a 40-hour work week (2080 hours per year).",
-            // Base unit is yearly pay: hourly × 2080 = yearly, monthly × 12 = yearly.
-            units = listOf(
-                linear("Hourly", "/hr", 2080.0),
-                linear("Monthly", "/mo", 12.0),
-                linear("Yearly", "/yr", 1.0)
-            )
-        ),
+        payCategory(DEFAULT_HOURS_PER_WEEK),
         Category(
             id = "shoe_men", name = "Men's Shoe Size", emoji = "👞", colorHex = "#92400E",
             note = "Approximate adult men's sizes anchored to common charts (US 9 ≈ 270 mm " +
@@ -384,17 +442,5 @@ object UnitsRepository {
      * Format a converted value for display: trims trailing zeros, limits precision to ~10
      * significant digits, and falls back to scientific notation for very large/small magnitudes.
      */
-    fun format(value: Double): String {
-        if (!value.isFinite()) return ""
-        if (value == 0.0) return "0"
-        val magnitude = abs(value)
-        return if (magnitude >= 1e-4 && magnitude < 1e12) {
-            BigDecimal.valueOf(value)
-                .round(MathContext(10))
-                .stripTrailingZeros()
-                .toPlainString()
-        } else {
-            String.format(Locale.US, "%.6E", value)
-        }
-    }
+    fun format(value: Double): String = formatNumber(value)
 }
