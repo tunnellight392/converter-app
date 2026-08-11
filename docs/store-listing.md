@@ -1,13 +1,16 @@
 # Play Store Listing — Unit Converter
 
+_Reflects app version 1.1.0 (versionCode 2). Per-version "What's new" text lives in
+[release-notes.md](release-notes.md)._
+
 ## Short description (80 char max)
 
 > Fast, offline unit converter — length, mass, temperature, shoe & shirt sizes
 
-_(78 characters)_
+_(76 characters)_
 
 ### Alternatives
-- Simple offline unit & measurement converter — no ads, no internet needed _(71)_
+- Search, convert, copy — offline unit converter with no ads and no tracking _(74)_
 - Convert length, weight, temperature, sizes & more — free, fast & offline _(72)_
 
 ---
@@ -23,9 +26,13 @@ Just pick a category, type a value, and see every conversion update in real time
 
 • Works 100% offline — no internet permission required
 • No ads and no tracking — your data never leaves your device
-• Clean, modern design that's easy to use
 • Instant, real-time results as you type
-• Light and dark theme support
+• Search every category and unit, including symbols — try "psi", "mpg" or "knot"
+• Long-press any row to copy its value
+• Picks up where you left off — your last value in each category is remembered
+• Choose how many decimal places results are shown to
+• Rearrange the categories into the order you use them
+• Clean, modern design with light and dark themes
 • Lightweight and fast
 
 ★ WHAT YOU CAN CONVERT ★
@@ -45,7 +52,7 @@ Just pick a category, type a value, and see every conversion update in real time
 • Power — watts, horsepower, kilowatts
 • Angle — degrees, radians
 • Frequency — hertz, kHz, MHz
-• Pay — convert pay across time periods
+• Pay — hourly, monthly and yearly, worked out from your own hours per week
 • Men's & Women's Shoe Sizes — US, UK, EU and more
 • Men's & Women's Shirt Sizes — across regional sizing
 
@@ -60,7 +67,7 @@ Have a suggestion, found a bug, or want a new conversion category added? You can
 Download Unit Converter today and make everyday conversions effortless!
 ```
 
-_(~1,950 characters — within the 4,000 limit)_
+_(2,384 characters — within the 4,000 limit)_
 
 ---
 
@@ -70,4 +77,7 @@ _(~1,950 characters — within the 4,000 limit)_
   Angle, Frequency, Pay, Men's/Women's Shoe Size, Men's/Women's Shirt Size.
 - Example units per category are illustrative; update if exact unit lists change.
 - "No ads / no tracking / offline" claims match the build (no INTERNET permission,
-  no ad/analytics SDKs).
+  no ad/analytics SDKs). Adding currency conversion would break all three — rewrite
+  this listing first if that ever ships.
+- The Pay bullet assumes the adjustable work week added in 1.1.0; it defaults to 40
+  hours (2080 per year) until the user changes it.
