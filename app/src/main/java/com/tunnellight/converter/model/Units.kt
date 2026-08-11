@@ -2,6 +2,7 @@ package com.tunnellight.converter.model
 
 import java.math.BigDecimal
 import java.math.MathContext
+import java.math.RoundingMode
 import java.util.Locale
 import kotlin.math.abs
 
@@ -39,7 +40,13 @@ data class Category(
     /** Optional caveat shown at the top of the converter screen. */
     val note: String? = null,
     /** Set when the category's conversions depend on a number the user can adjust. */
-    val param: CategoryParam? = null
+    val param: CategoryParam? = null,
+    /**
+     * Decimal places results are shown to, for categories where a fixed scale reads better
+     * than significant digits (money, for instance). Null formats adaptively. The user can
+     * override this per category on the converter screen.
+     */
+    val decimals: Int? = null
 )
 
 /**
@@ -136,18 +143,23 @@ private fun linear(name: String, symbol: String, factor: Double, snap: Double? =
  * Implementation of [UnitsRepository.format]. It lives at file scope so the category builders
  * below can use it while the repository object itself is still being initialised.
  */
-private fun formatNumber(value: Double): String {
+private fun formatNumber(value: Double, decimals: Int? = null): String {
     if (!value.isFinite()) return ""
-    if (value == 0.0) return "0"
     val magnitude = abs(value)
-    return if (magnitude >= 1e-4 && magnitude < 1e12) {
-        BigDecimal.valueOf(value)
-            .round(MathContext(10))
-            .stripTrailingZeros()
-            .toPlainString()
-    } else {
-        String.format(Locale.US, "%.6E", value)
+    // Outside this window a plain decimal is unreadable however many places are asked for.
+    if (magnitude != 0.0 && (magnitude < 1e-4 || magnitude >= 1e12)) {
+        return String.format(Locale.US, "%.6E", value)
     }
+    if (decimals != null) {
+        return BigDecimal.valueOf(value)
+            .setScale(decimals, RoundingMode.HALF_UP)
+            .toPlainString()
+    }
+    if (value == 0.0) return "0"
+    return BigDecimal.valueOf(value)
+        .round(MathContext(10))
+        .stripTrailingZeros()
+        .toPlainString()
 }
 
 /** Work week the Pay category assumes until the user enters their own hours. */
@@ -170,6 +182,8 @@ private fun payCategory(hoursPerWeek: Double): Category {
             linear("Monthly", "/mo", 12.0),
             linear("Yearly", "/yr", 1.0)
         ),
+        // Pay is money, so two places reads better than ten significant digits.
+        decimals = 2,
         param = CategoryParam(
             label = "Hours worked per week",
             caption = "h/week",
@@ -439,8 +453,34 @@ object UnitsRepository {
     fun categoryById(id: String): Category? = categories.firstOrNull { it.id == id }
 
     /**
-     * Format a converted value for display: trims trailing zeros, limits precision to ~10
-     * significant digits, and falls back to scientific notation for very large/small magnitudes.
+     * Format a converted value for display. With [decimals] the value is rounded to that many
+     * places; without it precision is limited to ~10 significant digits and trailing zeros are
+     * trimmed. Either way very large/small magnitudes fall back to scientific notation.
      */
-    fun format(value: Double): String = formatNumber(value)
+    fun format(value: Double, decimals: Int? = null): String = formatNumber(value, decimals)
+
+    /**
+     * Find the categories matching a search [query]. A category whose own name matches wins;
+     * otherwise the first unit whose name or symbol matches brings its category along, so
+     * searching "psi" or "knot" finds where those units live. Blank queries match everything.
+     */
+    fun search(query: String, from: List<Category> = categories): List<CategoryMatch> {
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) return from.map { CategoryMatch(it) }
+        return from.mapNotNull { category ->
+            if (category.name.contains(trimmed, ignoreCase = true)) {
+                CategoryMatch(category)
+            } else {
+                category.units
+                    .firstOrNull {
+                        it.name.contains(trimmed, ignoreCase = true) ||
+                            it.symbol.contains(trimmed, ignoreCase = true)
+                    }
+                    ?.let { CategoryMatch(category, it) }
+            }
+        }
+    }
 }
+
+/** A category a search turned up, plus the unit that matched when the category name did not. */
+data class CategoryMatch(val category: Category, val matchedUnit: ConvUnit? = null)

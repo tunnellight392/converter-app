@@ -1,13 +1,19 @@
 package com.tunnellight.converter
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
@@ -43,6 +49,9 @@ class ConverterActivity : AppCompatActivity() {
     /** Last field the user typed into, so conversions can be redriven when the parameter changes. */
     private var lastEdited: UnitRow? = null
 
+    /** Decimal places results are shown to; null formats adaptively. */
+    private var decimals: Int? = null
+
     private var noteBanner: TextView? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,6 +66,7 @@ class ConverterActivity : AppCompatActivity() {
         }
         // Reopen with whatever parameter value was last used, not the built-in default.
         category = base.param?.let { it.variantFor(savedParamValue(base.id, it)) } ?: base
+        decimals = savedDecimals()
 
         setSupportActionBar(findViewById<Toolbar>(R.id.toolbar))
         title = category.name
@@ -83,10 +93,16 @@ class ConverterActivity : AppCompatActivity() {
 
             val row = UnitRow(index, rowView.findViewById(R.id.unitValue))
             row.field.onTextChanged { onUserInput(row) }
+            // The field itself keeps the usual text-selection menu, so copying the whole row
+            // is offered from everywhere else on the card.
+            rowView.setOnLongClickListener { copyValue(unit.name, row.field) }
 
             rows.add(row)
             container.addView(rowView)
         }
+
+        restoreLastValue()
+        showCopyHintOnce()
     }
 
     /** Add a highlighted caveat banner above the unit rows. */
@@ -164,7 +180,10 @@ class ConverterActivity : AppCompatActivity() {
                 if (row === source) continue
                 row.field.setText(
                     if (value == null) ""
-                    else UnitsRepository.format(sourceUnit.convert(value, category.units[row.index]))
+                    else UnitsRepository.format(
+                        sourceUnit.convert(value, category.units[row.index]),
+                        decimals
+                    )
                 )
             }
         } finally {
@@ -172,18 +191,84 @@ class ConverterActivity : AppCompatActivity() {
         }
     }
 
+    /** Put a row's value on the clipboard. Returns false when there is nothing to copy. */
+    private fun copyValue(unitName: String, field: EditText): Boolean {
+        val value = field.text.toString().trim()
+        if (value.isEmpty()) return false
+
+        getSystemService(ClipboardManager::class.java)
+            .setPrimaryClip(ClipData.newPlainText(unitName, value))
+        // Android 13 and up shows its own copy confirmation, so a toast would be a duplicate.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Toast.makeText(this, getString(R.string.copied_toast, value), Toast.LENGTH_SHORT).show()
+        }
+        return true
+    }
+
+    /** Point out the long-press-to-copy gesture the first time a converter is opened. */
+    private fun showCopyHintOnce() {
+        if (statePrefs().getBoolean(KEY_COPY_HINT_SHOWN, false)) return
+        Toast.makeText(this, R.string.copy_hint, Toast.LENGTH_LONG).show()
+        statePrefs().edit { putBoolean(KEY_COPY_HINT_SHOWN, true) }
+    }
+
+    /** Refill the field the user last typed in here, so returning resumes where they left off. */
+    private fun restoreLastValue() {
+        val value = statePrefs().getString("$KEY_VALUE_PREFIX${category.id}", null)
+        if (value.isNullOrEmpty()) return
+        val row = rows.getOrNull(statePrefs().getInt("$KEY_UNIT_PREFIX${category.id}", -1)) ?: return
+        // Setting the text drives the watcher, which fills in every other row.
+        row.field.setText(value)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        val row = lastEdited ?: return
+        statePrefs().edit {
+            putInt("$KEY_UNIT_PREFIX${category.id}", row.index)
+            putString("$KEY_VALUE_PREFIX${category.id}", row.field.text.toString())
+        }
+    }
+
+    /** Let the user override how many decimal places this category's results are shown to. */
+    private fun showDecimalsDialog() {
+        val labels = DECIMAL_CHOICES.map {
+            if (it == null) getString(R.string.decimals_auto) else getString(R.string.decimals_places, it)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.menu_decimals)
+            .setSingleChoiceItems(labels.toTypedArray(), DECIMAL_CHOICES.indexOf(decimals)) { dialog, which ->
+                decimals = DECIMAL_CHOICES[which]
+                // "auto" is stored as a non-numeric marker so it stays distinct from the
+                // category's own default, which applies only while nothing has been chosen.
+                statePrefs().edit {
+                    putString("$KEY_DECIMALS_PREFIX${category.id}", decimals?.toString() ?: AUTO)
+                }
+                lastEdited?.let { onUserInput(it) }
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    /** The chosen decimal places for this category, falling back to the category's own default. */
+    private fun savedDecimals(): Int? {
+        val saved = statePrefs().getString("$KEY_DECIMALS_PREFIX${category.id}", null)
+            ?: return category.decimals
+        return saved.toIntOrNull()
+    }
+
     /** The parameter value last entered for [categoryId], or the parameter's default. */
     private fun savedParamValue(categoryId: String, param: CategoryParam): Double {
-        val saved = paramPrefs().getString(categoryId, null)?.toDoubleOrNull()
+        val saved = statePrefs().getString("$KEY_PARAM_PREFIX$categoryId", null)?.toDoubleOrNull()
         return if (saved != null && saved in param.range) saved else param.defaultValue
     }
 
     /** Persist the parameter so the category opens with it next time. */
     private fun saveParamValue(categoryId: String, value: Double) {
-        paramPrefs().edit { putString(categoryId, value.toString()) }
+        statePrefs().edit { putString("$KEY_PARAM_PREFIX$categoryId", value.toString()) }
     }
 
-    private fun paramPrefs() = getSharedPreferences(PREFS_CATEGORY_PARAMS, MODE_PRIVATE)
+    private fun statePrefs() = getSharedPreferences(PREFS_STATE, MODE_PRIVATE)
 
     /** Run [block] whenever this field's text changes. */
     private fun EditText.onTextChanged(block: () -> Unit) {
@@ -194,16 +279,37 @@ class ConverterActivity : AppCompatActivity() {
         })
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.converter_menu, menu)
+        return true
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            finish()
-            return true
+        when (item.itemId) {
+            android.R.id.home -> {
+                finish()
+                return true
+            }
+            R.id.action_decimals -> {
+                showDecimalsDialog()
+                return true
+            }
         }
         return super.onOptionsItemSelected(item)
     }
 
     companion object {
         const val EXTRA_CATEGORY_ID = "category_id"
-        private const val PREFS_CATEGORY_PARAMS = "category_params"
+
+        private const val PREFS_STATE = "converter_state"
+        private const val KEY_PARAM_PREFIX = "param:"
+        private const val KEY_VALUE_PREFIX = "value:"
+        private const val KEY_UNIT_PREFIX = "unit:"
+        private const val KEY_DECIMALS_PREFIX = "decimals:"
+        private const val KEY_COPY_HINT_SHOWN = "copy_hint_shown"
+
+        /** Decimal-place options offered in the menu; null means format adaptively. */
+        private val DECIMAL_CHOICES = listOf(null, 0, 1, 2, 3, 4, 6)
+        private const val AUTO = "auto"
     }
 }

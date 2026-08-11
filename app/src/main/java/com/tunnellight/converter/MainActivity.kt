@@ -4,7 +4,10 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.edit
 import androidx.core.view.ViewCompat
@@ -16,8 +19,17 @@ import androidx.recyclerview.widget.RecyclerView
 import com.tunnellight.converter.model.Category
 import com.tunnellight.converter.model.UnitsRepository
 
-/** Home screen: a tiled grid of every conversion category, draggable to reorder. */
+/** Home screen: a tiled grid of every conversion category, draggable to reorder and searchable. */
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var adapter: CategoryAdapter
+    private lateinit var emptyState: TextView
+
+    /** Every category in the user's saved order — the grid shows a filtered view of this. */
+    private var categories: List<Category> = emptyList()
+
+    /** Current search text. Reordering is only meaningful, and only allowed, while it is blank. */
+    private var query: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,16 +45,20 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        val categories = orderedCategories().toMutableList()
-        val adapter = CategoryAdapter(
-            categories,
+        categories = orderedCategories()
+        emptyState = findViewById(R.id.emptyState)
+        adapter = CategoryAdapter(
+            UnitsRepository.search("", categories).toMutableList(),
             onClick = { category ->
                 startActivity(
                     Intent(this, ConverterActivity::class.java)
                         .putExtra(ConverterActivity.EXTRA_CATEGORY_ID, category.id)
                 )
             },
-            onOrderChanged = { newOrder -> saveOrder(newOrder) }
+            onOrderChanged = { newOrder ->
+                categories = newOrder
+                saveOrder(newOrder)
+            }
         )
         recycler.layoutManager = GridLayoutManager(this, 2)
         recycler.adapter = adapter
@@ -52,7 +68,29 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+        val searchView = menu.findItem(R.id.action_search).actionView as SearchView
+        searchView.queryHint = getString(R.string.search_hint)
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                searchView.clearFocus()
+                return true
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                applyQuery(newText.orEmpty())
+                return true
+            }
+        })
         return true
+    }
+
+    /** Narrow the grid to the categories and units matching [query], or show everything again. */
+    private fun applyQuery(query: String) {
+        this.query = query
+        val matches = UnitsRepository.search(query, categories)
+        adapter.submit(matches)
+        emptyState.text = getString(R.string.search_no_matches, query.trim())
+        emptyState.visibility = if (matches.isEmpty()) View.VISIBLE else View.GONE
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -79,7 +117,9 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
 
-            override fun isLongPressDragEnabled() = true
+            // A drag within search results would reorder a partial list, so only allow it
+            // while the full grid is on screen.
+            override fun isLongPressDragEnabled() = query.isBlank()
 
             override fun onSelectedChanged(
                 viewHolder: RecyclerView.ViewHolder?,
