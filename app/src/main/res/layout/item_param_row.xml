@@ -8,7 +8,9 @@
     android:layout_marginVertical="6dp"
     app:cardBackgroundColor="@color/card_bg"
     app:cardCornerRadius="14dp"
-    app:cardElevation="1dp">
+    app:cardElevation="1dp"
+    app:strokeColor="@color/brand"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -25,41 +27,43 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/unitName"
+                android:id="@+id/paramLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/brand_dark"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                tools:text="Meter" />
+                tools:text="Hours worked per week" />
 
             <TextView
-                android:id="@+id/unitSymbol"
+                android:id="@+id/paramCaption"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp"
-                tools:text="m" />
+                tools:text="h/week" />
 
         </LinearLayout>
 
+        <!-- paramLabel carries model-supplied text, so it is wired up as this field's
+             label in ConverterActivity.addParamRow rather than with android:labelFor here. -->
         <EditText
-            android:id="@+id/unitValue"
+            android:id="@+id/paramValue"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1.1"
             android:background="@drawable/value_field_bg"
             android:gravity="end"
-            android:hint="@string/value_hint"
             android:importantForAutofill="no"
-            android:inputType="numberDecimal|numberSigned"
+            android:inputType="numberDecimal"
             android:maxLines="1"
             android:paddingHorizontal="12dp"
             android:paddingVertical="10dp"
             android:textColor="@color/text_primary"
             android:textColorHint="@color/text_hint"
             android:textSize="16sp"
-            tools:text="1" />
+            tools:ignore="LabelFor"
+            tools:text="40" />
 
     </LinearLayout>
 
