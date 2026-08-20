@@ -1,6 +1,6 @@
 # Play Store Listing — Unit Converter
 
-_Reflects app version 1.1.0 (versionCode 2). Per-version "What's new" text lives in
+_Reflects app version 1.2.0 (versionCode 3). Per-version "What's new" text lives in
 [release-notes.md](release-notes.md)._
 
 ## Short description (80 char max)
@@ -79,5 +79,5 @@ _(2,384 characters — within the 4,000 limit)_
 - "No ads / no tracking / offline" claims match the build (no INTERNET permission,
   no ad/analytics SDKs). Adding currency conversion would break all three — rewrite
   this listing first if that ever ships.
-- The Pay bullet assumes the adjustable work week added in 1.1.0; it defaults to 40
+- The Pay bullet assumes the adjustable work week added in 1.2.0; it defaults to 40
   hours (2080 per year) until the user changes it.
