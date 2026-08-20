@@ -5,7 +5,7 @@ Play Store "What's new" text, newest first. Each entry must fit **500 characters
 
 ---
 
-## 1.1.0 (versionCode 2)
+## 1.2.0 (versionCode 3)
 
 ```
 Search, copy and a converter that remembers where you left off.
