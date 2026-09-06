@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.os.Build
 import android.os.Bundle
+import android.text.InputType
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -23,6 +24,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.tunnellight.converter.model.Category
 import com.tunnellight.converter.model.CategoryParam
+import com.tunnellight.converter.model.Keyboard
 import com.tunnellight.converter.model.UnitsRepository
 
 /**
@@ -92,6 +94,12 @@ class ConverterActivity : AppCompatActivity() {
             rowView.findViewById<TextView>(R.id.unitSymbol).text = unit.symbol
 
             val row = UnitRow(index, rowView.findViewById(R.id.unitValue))
+            // A category that formats its own values brings its own keyboard and empty-field
+            // hint with it — a time keypad and "00:00" for Clock, not a decimal pad and "0".
+            category.valueFormat?.let { format ->
+                row.field.inputType = format.keyboard.inputType()
+                row.field.hint = format.format(0.0)
+            }
             row.field.onTextChanged { onUserInput(row) }
             // The field itself keeps the usual text-selection menu, so copying the whole row
             // is offered from everywhere else on the card.
@@ -101,7 +109,7 @@ class ConverterActivity : AppCompatActivity() {
             container.addView(rowView)
         }
 
-        restoreLastValue()
+        fillInitialValue()
         showCopyHintOnce()
     }
 
@@ -171,7 +179,7 @@ class ConverterActivity : AppCompatActivity() {
 
         lastEdited = source
         val raw = source.field.text.toString().trim()
-        val value = raw.toDoubleOrNull()
+        val value = parseValue(raw)
         val sourceUnit = category.units[source.index]
 
         isUpdating = true
@@ -180,15 +188,27 @@ class ConverterActivity : AppCompatActivity() {
                 if (row === source) continue
                 row.field.setText(
                     if (value == null) ""
-                    else UnitsRepository.format(
-                        sourceUnit.convert(value, category.units[row.index]),
-                        decimals
-                    )
+                    else formatValue(sourceUnit.convert(value, category.units[row.index]))
                 )
             }
         } finally {
             isUpdating = false
         }
+    }
+
+    /** Read a field the way this category writes values — Clock's "14:30", say, rather than 14.5. */
+    private fun parseValue(text: String): Double? =
+        category.valueFormat?.parse(text) ?: text.toDoubleOrNull()
+
+    /** Render a converted value the way this category writes values. */
+    private fun formatValue(value: Double): String =
+        category.valueFormat?.format(value) ?: UnitsRepository.format(value, decimals)
+
+    /** The Android input type a category's chosen keyboard maps to. */
+    private fun Keyboard.inputType(): Int = when (this) {
+        Keyboard.NUMBER -> InputType.TYPE_CLASS_NUMBER or
+            InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED
+        Keyboard.TIME -> InputType.TYPE_CLASS_DATETIME or InputType.TYPE_DATETIME_VARIATION_TIME
     }
 
     /** Put a row's value on the clipboard. Returns false when there is nothing to copy. */
@@ -212,17 +232,28 @@ class ConverterActivity : AppCompatActivity() {
         statePrefs().edit { putBoolean(KEY_COPY_HINT_SHOWN, true) }
     }
 
-    /** Refill the field the user last typed in here, so returning resumes where they left off. */
-    private fun restoreLastValue() {
+    /**
+     * Fill in the value the screen opens on: the one the category names, where it has one (Clock
+     * opens on the current time), and otherwise the value last typed here, so that coming back
+     * resumes where the user left off.
+     */
+    private fun fillInitialValue() {
+        // Setting the text drives the watcher, which fills in every other row.
+        category.openingValue?.let {
+            rows.firstOrNull()?.field?.setText(formatValue(it()))
+            return
+        }
         val value = statePrefs().getString("$KEY_VALUE_PREFIX${category.id}", null)
         if (value.isNullOrEmpty()) return
         val row = rows.getOrNull(statePrefs().getInt("$KEY_UNIT_PREFIX${category.id}", -1)) ?: return
-        // Setting the text drives the watcher, which fills in every other row.
         row.field.setText(value)
     }
 
     override fun onPause() {
         super.onPause()
+        // A category that opens on a value of its own (Clock, on the current time) would only
+        // ever restore a stale one, so there is nothing here worth saving.
+        if (category.openingValue != null) return
         val row = lastEdited ?: return
         statePrefs().edit {
             putInt("$KEY_UNIT_PREFIX${category.id}", row.index)
@@ -281,6 +312,10 @@ class ConverterActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.converter_menu, menu)
+        // Decimal places say nothing about a category that formats its own values; Clock offers
+        // a way back to the current moment instead.
+        menu.findItem(R.id.action_decimals).isVisible = category.valueFormat == null
+        menu.findItem(R.id.action_now).isVisible = category.openingValue != null
         return true
     }
 
@@ -288,6 +323,10 @@ class ConverterActivity : AppCompatActivity() {
         when (item.itemId) {
             android.R.id.home -> {
                 finish()
+                return true
+            }
+            R.id.action_now -> {
+                fillInitialValue()
                 return true
             }
             R.id.action_decimals -> {

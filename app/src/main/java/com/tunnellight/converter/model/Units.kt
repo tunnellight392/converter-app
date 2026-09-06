@@ -3,6 +3,9 @@ package com.tunnellight.converter.model
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
+import java.time.Instant
+import java.time.LocalTime
+import java.time.ZoneId
 import java.util.Locale
 import kotlin.math.abs
 
@@ -46,7 +49,17 @@ data class Category(
      * than significant digits (money, for instance). Null formats adaptively. The user can
      * override this per category on the converter screen.
      */
-    val decimals: Int? = null
+    val decimals: Int? = null,
+    /**
+     * How this category's values are written into the fields and read back out. Null formats
+     * them as plain numbers; Clock supplies one so its rows read "14:30" and not "14.5".
+     */
+    val valueFormat: ValueFormat? = null,
+    /**
+     * Value the first unit's field opens on, in that unit's own scale, in place of whatever the
+     * user last typed. Clock uses it to open on the current time.
+     */
+    val openingValue: (() -> Double)? = null
 )
 
 /**
@@ -194,6 +207,154 @@ private fun payCategory(hoursPerWeek: Double): Category {
     )
 }
 
+/**
+ * Reads and writes a category's field text as something other than a plain number. Only Clock
+ * needs one, so that its values read as times of day rather than as decimal hours.
+ */
+interface ValueFormat {
+    /** Turn field text into a value in the unit's own scale, or null when it isn't usable. */
+    fun parse(text: String): Double?
+
+    /** Render a converted value for display. */
+    fun format(value: Double): String
+
+    /** The soft keyboard this format wants; the converter screen maps it to an input type. */
+    val keyboard: Keyboard
+}
+
+/** Soft keyboards a value format can ask for. */
+enum class Keyboard { NUMBER, TIME }
+
+private const val MINUTES_PER_DAY = 1440L
+
+/**
+ * Clock times. Values are hours, shown as "HH:mm". A conversion that crosses midnight is left to
+ * run past the ends of the day — 23:30 in London reaches Tokyo as 32.5 — and the marker "+1d" or
+ * "-1d" says which day it landed on. Parsing is lenient: "9", "9:", "9:05", "09:05:30" and
+ * "9:05 pm" all read, so a half-typed time doesn't blank out every other row.
+ */
+object ClockFormat : ValueFormat {
+
+    override val keyboard = Keyboard.TIME
+
+    override fun format(value: Double): String {
+        if (!value.isFinite()) return ""
+        val minutes = Math.round(value * 60.0)
+        val days = Math.floorDiv(minutes, MINUTES_PER_DAY)
+        val inDay = Math.floorMod(minutes, MINUTES_PER_DAY)
+        val time = String.format(Locale.US, "%02d:%02d", inDay / 60, inDay % 60)
+        return when {
+            days > 0L -> "$time +${days}d"
+            days < 0L -> "$time ${days}d"
+            else -> time
+        }
+    }
+
+    override fun parse(text: String): Double? {
+        var rest = text.trim().lowercase(Locale.US)
+        var days = 0L
+        DAY_MARKER.find(rest)?.let {
+            days = it.groupValues[2].toLong() * if (it.groupValues[1] == "-") -1L else 1L
+            rest = rest.removeRange(it.range).trim()
+        }
+        val meridiem = MERIDIEM.find(rest)?.also { rest = rest.removeRange(it.range).trim() }
+        val fields = TIME.matchEntire(rest) ?: return null
+        var hours = fields.groupValues[1].toInt()
+        val minutes = fields.groupValues[2].toIntOrNull() ?: 0
+        val seconds = fields.groupValues[3].toIntOrNull() ?: 0
+        if (minutes > 59 || seconds > 59) return null
+        if (meridiem != null) {
+            if (hours !in 1..12) return null
+            hours = hours % 12 + if (meridiem.groupValues[1] == "p") 12 else 0
+        } else if (hours > 23) {
+            return null
+        }
+        return days * 24 + hours + minutes / 60.0 + seconds / 3600.0
+    }
+
+    /** The day marker [format] appends when a conversion lands on another date. */
+    private val DAY_MARKER = Regex("""([+-])\s*(\d+)\s*d$""")
+    private val MERIDIEM = Regex("""\s*([ap])\.?m?\.?$""")
+    /** Hours, then optional minutes and seconds; the empty groups let a trailing ":" through. */
+    private val TIME = Regex("""(\d{1,2})(?::(\d{0,2}))?(?::(\d{0,2}))?""")
+}
+
+private const val CLOCK_ID = "clock"
+
+/**
+ * Cities the Clock category offers beside the device's own zone, as time-zone id to display name.
+ * They are ordered west to east by the offset each one is on when the category is built, so the
+ * list reads as a run around the globe.
+ */
+private val CLOCK_ZONES = listOf(
+    "America/Los_Angeles" to "Los Angeles",
+    "America/Chicago" to "Chicago",
+    "America/New_York" to "New York",
+    "America/Sao_Paulo" to "São Paulo",
+    "UTC" to "UTC",
+    "Europe/London" to "London",
+    "Europe/Paris" to "Paris",
+    "Africa/Johannesburg" to "Johannesburg",
+    "Europe/Moscow" to "Moscow",
+    "Asia/Dubai" to "Dubai",
+    "Asia/Kolkata" to "Kolkata",
+    "Asia/Singapore" to "Singapore",
+    "Asia/Shanghai" to "Shanghai",
+    "Asia/Tokyo" to "Tokyo",
+    "Australia/Sydney" to "Sydney",
+    "Pacific/Auckland" to "Auckland"
+)
+
+/**
+ * A time zone as a Clock unit. The base is hours since midnight UTC, so a zone is only an offset —
+ * the one it is on at [at], which is what puts daylight saving in the right place for today.
+ * [city] is shown beside the offset where it adds anything (the device's zone names itself).
+ */
+private fun zoneUnit(name: String, zone: ZoneId, at: Instant, city: String? = null): ConvUnit {
+    val offsetHours = zone.rules.getOffset(at).totalSeconds / 3600.0
+    val offsetLabel = utcOffsetLabel(offsetHours)
+    return ConvUnit(
+        name = name,
+        symbol = if (city == null || city == offsetLabel) offsetLabel else "$city · $offsetLabel",
+        toBase = { it - offsetHours },
+        fromBase = { it + offsetHours }
+    )
+}
+
+/** "UTC+05:30", "UTC-08:00", or plain "UTC" on a zero offset. */
+private fun utcOffsetLabel(offsetHours: Double): String {
+    if (offsetHours == 0.0) return "UTC"
+    val minutes = Math.round(abs(offsetHours) * 60.0).toInt()
+    val sign = if (offsetHours < 0) "-" else "+"
+    return String.format(Locale.US, "UTC%s%02d:%02d", sign, minutes / 60, minutes % 60)
+}
+
+/** "Asia/Kolkata" → "Kolkata". An id with no region (such as "UTC") is its own name. */
+private fun zoneCity(zone: ZoneId) = zone.id.substringAfterLast('/').replace('_', ' ')
+
+/**
+ * Build the Clock category as of [at]. The device's own zone leads the list — it comes from the
+ * system time-zone setting, so nothing here needs location access — followed by [CLOCK_ZONES],
+ * minus any entry that keeps the same time as the device's zone anyway.
+ */
+private fun clockCategory(at: Instant = Instant.now()): Category {
+    val local = ZoneId.systemDefault()
+    val elsewhere = CLOCK_ZONES
+        .map { (id, name) -> ZoneId.of(id) to name }
+        .filterNot { (zone, _) -> zone.rules == local.rules }
+        .sortedBy { (zone, _) -> zone.rules.getOffset(at).totalSeconds }
+        .map { (zone, name) -> zoneUnit(name, zone, at) }
+    return Category(
+        id = CLOCK_ID, name = "Clock", emoji = "🕒", colorHex = "#4338CA",
+        note = "Your own zone is the one the device is set to — no location access involved. " +
+            "Every zone is shown at the UTC offset it is on right now, so a time typed for a " +
+            "date the other side of a daylight-saving change can be an hour out.",
+        units = listOf(zoneUnit("Local time", local, at, city = zoneCity(local))) + elsewhere,
+        valueFormat = ClockFormat,
+        openingValue = { LocalTime.now(local).let { it.hour + it.minute / 60.0 } }
+    )
+}
+
 object UnitsRepository {
 
     val categories: List<Category> = listOf(
@@ -209,6 +370,7 @@ object UnitsRepository {
                 linear("Yard", "yd", 0.9144),
                 linear("Foot", "ft", 0.3048),
                 linear("Inch", "in", 0.0254),
+                linear("Thou", "thou", 2.54e-5),
                 linear("Nautical mile", "nmi", 1852.0)
             )
         ),
@@ -329,6 +491,7 @@ object UnitsRepository {
                 linear("Year (365 d)", "yr", 31536000.0)
             )
         ),
+        clockCategory(),
         Category(
             id = "storage", name = "Digital Storage", emoji = "💾", colorHex = "#64748B",
             units = listOf(
@@ -450,7 +613,12 @@ object UnitsRepository {
         )
     )
 
-    fun categoryById(id: String): Category? = categories.firstOrNull { it.id == id }
+    /**
+     * Look up a category by id. Clock is rebuilt on every lookup so that it opens on the device's
+     * current zone and today's offsets, not on whatever they were when the app started.
+     */
+    fun categoryById(id: String): Category? =
+        if (id == CLOCK_ID) clockCategory() else categories.firstOrNull { it.id == id }
 
     /**
      * Format a converted value for display. With [decimals] the value is rounded to that many
