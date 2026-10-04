@@ -525,7 +525,8 @@ object UnitsRepository {
                 linear("Millibar", "mbar", 100.0),
                 linear("PSI", "psi", 6894.757293168),
                 linear("Atmosphere", "atm", 101325.0),
-                linear("Torr (mmHg)", "Torr", 133.32236842105263)
+                linear("Torr (mmHg)", "Torr", 133.32236842105263),
+                linear("Kilogram-force per sq. cm", "kg/cm²", 98066.5)
             )
         ),
         Category(
